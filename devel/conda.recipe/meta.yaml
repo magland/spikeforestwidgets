@@ -1,7 +1,7 @@
 {% set data=load_setup_py_data() %}
 
 # Cannot get the name dynamically from the setup.py
-{% set pkg_name = "mountainlab_pytools" %}
+{% set pkg_name = "spikeforestwidgets" %}
 #{% set pkg_name = data.get('name') %}
 {% set build_script = data.get('conda',{}).get('build_script',[]) %}
 {% set requirements = data.get('conda',{}).get('requirements',[]) %}
