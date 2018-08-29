@@ -7,7 +7,8 @@ window.$ = $;
 
 const registered_widgets={
 	DatasetSelectWidget:require(__dirname+'/datasetselectwidget/datasetselectwidget.js'),
-  DatasetWidget:require(__dirname+'/datasetwidget/datasetwidget.js')
+  DatasetWidget:require(__dirname+'/datasetwidget/datasetwidget.js'),
+  LariLoginWidget:require(__dirname+'/lariloginwidget/lariloginwidget.js'),
 };
 
 window.render_widget=function(widget_name,props,element) {

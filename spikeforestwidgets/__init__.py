@@ -20,21 +20,42 @@ def reload_javascript():
     
 reload_javascript()
 
-def createWidget(component,props):
+def createWidget(component_name,props,onStateChanged=None):
     reload_javascript()
     W=jp_proxy_widget.JSProxyWidget()
     W.state={}
     def on_state_changed(state0):
         W.state=state0
+        if onStateChanged:
+            onStateChanged()
     W.js_init('''
     element.empty();
     props.onStateChanged=function(state) {{
         on_state_changed(state);
     }};
     X=window.render_widget('{}',props,element);
-    '''.format(component),props=props,on_state_changed=on_state_changed)
+    '''.format(component_name),props=props,on_state_changed=on_state_changed)
     
     return W
+
+def viewDataset(dataset=None,*,directory='',id=None,visible_channels=''):
+    if not dataset:
+        dataset=dict(
+            raw_path=directory,
+            id=id
+        )
+    W=DatasetWidget(dataset=dataset,visible_channels=visible_channels)
+    W.display()
+    return W
+
+class LariLoginWidget:
+    def __init__(self):
+        def on_state_changed():
+            os.environ['LARI_ID']=self._widget.state['LARI_ID']
+            os.environ['LARI_PASSCODE']=self._widget.state['LARI_PASSCODE']
+        self._widget=createWidget('LariLoginWidget',dict(),onStateChanged=on_state_changed)
+    def display(self):
+        display(self._widget)
 
 class DatasetSelectWidget:
     def __init__(self,datasets):
