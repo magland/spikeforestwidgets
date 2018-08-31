@@ -4,7 +4,7 @@ pkg_name="spikeforestwidgets"
 
 setuptools.setup(
     name=pkg_name,
-    version="0.1.2",
+    version="0.1.3",
     author="Jeremy Magland",
     author_email="jmagland@flatironinstitute.org",
     description="",
