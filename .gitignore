@@ -2,3 +2,6 @@ node_modules
 .ipynb_checkpoints
 *.sublime-project
 *.sublime-workspace
+/build
+/dist
+*.egg-info
