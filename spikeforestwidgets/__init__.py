@@ -48,12 +48,20 @@ def viewDataset(dataset=None,*,directory='',id=None,visible_channels=''):
     W.display()
     return W
 
+default_lari_servers=[]
+default_lari_servers.append(dict(
+    label='Local computer',
+    LARI_ID=''
+))
+
 class LariLoginWidget:
-    def __init__(self):
+    def __init__(self,servers=None):
+        if not servers:
+            servers=default_lari_servers
         def on_state_changed():
             os.environ['LARI_ID']=self._widget.state['LARI_ID']
             os.environ['LARI_PASSCODE']=self._widget.state['LARI_PASSCODE']
-        self._widget=createWidget('LariLoginWidget',dict(),onStateChanged=on_state_changed)
+        self._widget=createWidget('LariLoginWidget',dict(servers=servers),onStateChanged=on_state_changed)
     def display(self):
         display(self._widget)
 
