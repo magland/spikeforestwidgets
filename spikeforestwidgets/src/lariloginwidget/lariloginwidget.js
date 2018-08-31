@@ -96,12 +96,12 @@ function default_servers() {
 		LARI_ID:''
 	});
 	servers.push({
-		label:'ccblin008',
+		label:'Flatiron cluster',
 		LARI_ID:'fdb573a66f50'
 	});
 	servers.push({
-		label:'private',
-		LARI_ID:'private'
+		label:"Jeremy's laptop",
+		LARI_ID:'cb48a51bf9e5'
 	});
 	return servers;
 }
