@@ -1,91 +1,50 @@
-import jp_proxy_widget
+import uuid
+from spikeextractors import mdaio
+import io
+import base64
+import vdomr as vd
 import os
-from IPython.display import Javascript
 
-loaded_javascript_files={}
-def load_javascript_file(fname):
-    modified_timestamp=os.path.getmtime(fname)
-    if fname in loaded_javascript_files:
-        if loaded_javascript_files[fname]['mtime']==modified_timestamp:
-            return
-    with open(fname,'r') as f:
-        js=f.read()
-    print('Loading javascript: '+fname);
-    display(Javascript(js))
-    loaded_javascript_files[fname]=dict(mtime=modified_timestamp)
-    
-def reload_javascript():
-    dirname=os.path.dirname(os.path.realpath(__file__))
-    load_javascript_file(dirname+'/dist/main.js');
-    
-reload_javascript()
+source_path=os.path.dirname(os.path.realpath(__file__))
 
-def createWidget(component_name,props,onStateChanged=None):
-    reload_javascript()
-    W=jp_proxy_widget.JSProxyWidget()
-    W.state={}
-    def on_state_changed(state0):
-        W.state=state0
-        if onStateChanged:
-            onStateChanged()
-    W.js_init('''
-    element.empty();
-    props.onStateChanged=function(state) {{
-        on_state_changed(state);
-    }};
-    X=window.render_widget('{}',props,element);
-    '''.format(component_name),props=props,on_state_changed=on_state_changed)
-    
-    return W
+def _mda32_to_base64(X):
+    f=io.BytesIO()
+    mdaio.writemda32(X,f)
+    return base64.b64encode(f.getvalue()).decode('utf-8')
 
-def viewDataset(dataset=None,*,directory='',id=None,visible_channels=''):
-    if not dataset:
-        dataset=dict(
-            raw_path=directory,
-            id=id
-        )
-    W=DatasetWidget(dataset=dataset,visible_channels=visible_channels)
-    W.display()
-    return W
-
-default_lari_servers=[]
-default_lari_servers.append(dict(
-    label='Local computer',
-    LARI_ID=''
-))
-
-class LariLoginWidget:
-    def __init__(self,servers=None):
-        if not servers:
-            servers=default_lari_servers
-        def on_state_changed():
-            os.environ['LARI_ID']=self._widget.state['LARI_ID']
-            os.environ['LARI_PASSCODE']=self._widget.state['LARI_PASSCODE']
-        self._widget=createWidget('LariLoginWidget',dict(servers=servers),onStateChanged=on_state_changed)
-    def display(self):
-        display(self._widget)
-
-class DatasetSelectWidget:
-    def __init__(self,datasets):
-        self._datasets=datasets
-        self._widget=createWidget('DatasetSelectWidget',dict(datasets=datasets))
-    def display(self):
-        display(self._widget)
-    def selectedDataset(self):
-        if 'selectedDatasetId' in self._widget.state:
-            id=self._widget.state['selectedDatasetId']
-            return self._find_dataset(id)
-        else:
-            return None
-    def _find_dataset(self,id):
-        for ds in self._datasets:
-            if ds['id']==id:
-                return ds
-        return None
-
-class DatasetWidget:
-    def __init__(self,dataset,visible_channels):
-        self._dataset=dataset
-        self._widget=createWidget('DatasetWidget',dict(dataset=dataset,visible_channels=visible_channels))
-    def display(self):
-        display(self._widget)
+class TimeseriesWidget(vd.Component):
+    def __init__(self,*,recording):
+        vd.Component.__init__(self)
+        self._recording=recording
+        self._array=recording.getTraces()
+        self._array_b64=_mda32_to_base64(self._array)
+        self._div_id='SFTimeseriesWidget-'+str(uuid.uuid4())
+        vd.devel.loadJavascript(path=source_path+'/dist/main.js')
+        js="window.sfdata=window.sfdata||{}; window.sfdata.test=1; window.sfdata['array_b64_{div_id}']='{b64}'"
+        js=self._div_id.join(js.split('{div_id}'))
+        js=self._array_b64.join(js.split('{b64}'))
+        vd.devel.loadJavascript(js=js)
+    def render(self):
+        div=vd.div(id=self._div_id)
+        js="""
+        function _base64ToArrayBuffer(base64) {
+            var binary_string =  window.atob(base64);
+            var len = binary_string.length;
+            var bytes = new Uint8Array( len );
+            for (var i = 0; i < len; i++)        {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+        let W=new window.TimeseriesWidget();
+        let X=_base64ToArrayBuffer(window.sfdata['array_b64_{div_id}']);
+        let A=new window.Mda();
+        A.setFromArrayBuffer(X);
+        let TS=new window.TimeseriesModel(A);
+        W.setTimeseriesModel(TS);
+        W.setSize(800,400)
+        $('#{div_id}').append(W.div());
+        """
+        js=self._div_id.join(js.split('{div_id}'))
+        vd.devel.loadJavascript(js=js,delay=1)
+        return div

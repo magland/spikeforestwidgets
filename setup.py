@@ -4,7 +4,7 @@ pkg_name="spikeforestwidgets"
 
 setuptools.setup(
     name=pkg_name,
-    version="0.1.4",
+    version="0.2.0",
     author="Jeremy Magland",
     author_email="jmagland@flatironinstitute.org",
     description="",
@@ -13,10 +13,7 @@ setuptools.setup(
     package_data={
         '': ['dist/*']
     },
-    install_requires=[
-        'ipywidgets',
-        'jp_proxy_widget'
-    ],
+    install_requires=[],
     classifiers=(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: Apache Software License",

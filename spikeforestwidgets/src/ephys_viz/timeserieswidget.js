@@ -1,7 +1,7 @@
 exports.TimeseriesWidget=TimeseriesWidget;
 const TimeDisplay = require(__dirname+'/timedisplayclass.js').TimeDisplay
 
-import * as d3 from 'd3'
+//import * as d3 from 'd3'
 
 function TimeseriesWidget() {
     TimeDisplay(this);
@@ -30,6 +30,12 @@ function TimeseriesWidget() {
 
     function refresh_view(holder,gg,info) {
         m_amp_factor = that.m_amp_factor;
+
+        if (!m_timeseries_model) {
+            console.warn('timeseries model not set in timeseries widget.');
+            return;
+        }
+
         if (!m_timeseries_stats) {
             schedule_compute_timeseries_stats();
             return;
@@ -100,45 +106,47 @@ function TimeseriesWidget() {
             }
         }
 
-        for (var m=0; m<M; m++) {
-            var color=channel_colors[m%channel_colors.length];
-            var aa=full_yrange[0];
-            var bb=full_yrange[1]-full_yrange[0];
-            var hh=(bb-(M-1)*spacing)/M;
-            //var y0range=[aa+m*(hh+spacing),aa+m*(hh+spacing)+hh];
-            var y0range=[aa+m*(hh+spacing)+hh,aa+m*(hh+spacing)];
-            var ymu=m_timeseries_stats.channel_means[m];
-            //var ysig=m_timeseries_stats.channel_stdevs[m];
-            var ysig=m_timeseries_stats.overall_stdev;
-            var y0domain=[ymu-7*ysig/m_amp_factor,ymu+7*ysig/m_amp_factor];
-            var y0scale = d3.scaleLinear().domain(y0domain).range(y0range);
-            var y0_axis=d3.axisLeft().scale(y0scale).ticks(0);
+        if (TS) {
+            for (var m=0; m<M; m++) {
+                var color=channel_colors[m%channel_colors.length];
+                var aa=full_yrange[0];
+                var bb=full_yrange[1]-full_yrange[0];
+                var hh=(bb-(M-1)*spacing)/M;
+                //var y0range=[aa+m*(hh+spacing),aa+m*(hh+spacing)+hh];
+                var y0range=[aa+m*(hh+spacing)+hh,aa+m*(hh+spacing)];
+                var ymu=m_timeseries_stats.channel_means[m];
+                //var ysig=m_timeseries_stats.channel_stdevs[m];
+                var ysig=m_timeseries_stats.overall_stdev;
+                var y0domain=[ymu-7*ysig/m_amp_factor,ymu+7*ysig/m_amp_factor];
+                var y0scale = d3.scaleLinear().domain(y0domain).range(y0range);
+                var y0_axis=d3.axisLeft().scale(y0scale).ticks(0);
 
-            gg.append("g") // Add the Y Axis
-                .attr("class", "y axis")
-                .attr("transform",'translate('+(info.padding_left-5)+', '+(0)+')')
-                .call(y0_axis);
+                gg.append("g") // Add the Y Axis
+                    .attr("class", "y axis")
+                    .attr("transform",'translate('+(info.padding_left-5)+', '+(0)+')')
+                    .call(y0_axis);
 
-            // text label for the y axis
-            gg.append('text')
-                .attr("transform",'translate('+(info.padding_left-15)+', '+(y0range[0]+y0range[1])/2+')')
-                .style("text-anchor", "end")
-                .text("Ch. "+channels[m]);
+                // text label for the y axis
+                gg.append('text')
+                    .attr("transform",'translate('+(info.padding_left-15)+', '+(y0range[0]+y0range[1])/2+')')
+                    .style("text-anchor", "end")
+                    .text("Ch. "+channels[m]);
 
-            var ydata0=d3.range(t2-t1+1); //todo: use something like d3.zeros
-            var data0=[];
-            for (var i=0; i<t2-t1+1; i++) {
-                if (t1+i<TS.numTimepoints()) {
-                    //Note that sometimes the value was coming out as NaN. Not sure why. Debugged for a long time. Just replacing with zero for now.
-                    data0.push({x:xdata[i],y:chunk.value(channels[m]-1,t1+i-t1)||0});
+                var ydata0=d3.range(t2-t1+1); //todo: use something like d3.zeros
+                var data0=[];
+                for (var i=0; i<t2-t1+1; i++) {
+                    if (t1+i<TS.numTimepoints()) {
+                        //Note that sometimes the value was coming out as NaN. Not sure why. Debugged for a long time. Just replacing with zero for now.
+                        data0.push({x:xdata[i],y:chunk.value(channels[m]-1,t1+i-t1)||0});
+                    }
                 }
+                var line=d3.line()
+                    .x(function(d) {return info.xscale(d.x);})
+                    .y(function(d) {return y0scale(d.y);});
+                var path=gg.append("path") // Add the line path from the data
+                    .attr("d", line(data0));
+                $(path.node()).css({fill:"none",stroke:color,"stroke-width":1});
             }
-            var line=d3.line()
-                .x(function(d) {return info.xscale(d.x);})
-                .y(function(d) {return y0scale(d.y);});
-            var path=gg.append("path") // Add the line path from the data
-                .attr("d", line(data0));
-            $(path.node()).css({fill:"none",stroke:color,"stroke-width":1});
         }
     }
     var compute_timeseries_stats_timestamp=0;
@@ -165,6 +173,11 @@ function TimeseriesWidget() {
         return channels;
     }
     function do_compute_timeseries_stats() {
+        if (!m_timeseries_model) {
+            //perhaps has not been retrieved yet
+            schedule_compute_timeseries_stats();
+            return;
+        }
         var channels=get_channels();
         var M=channels.length;
         //var M=m_timeseries_model.numChannels();
