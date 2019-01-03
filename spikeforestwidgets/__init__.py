@@ -19,7 +19,13 @@ class TimeseriesWidget(vd.Component):
         self._array=recording.getTraces()
         self._array_b64=_mda32_to_base64(self._array)
         self._div_id='SFTimeseriesWidget-'+str(uuid.uuid4())
+
+        vd.devel.loadBootstrap()
+        vd.devel.loadCss(url='https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css')
         vd.devel.loadJavascript(path=source_path+'/dist/main.js')
+        vd.devel.loadJavascript(path=source_path+'/dist/d3.v5.min.js')
+        vd.devel.loadJavascript(path=source_path+'/dist/jquery-3.3.1.min.js')
+
         js="window.sfdata=window.sfdata||{}; window.sfdata.test=1; window.sfdata['array_b64_{div_id}']='{b64}'"
         js=self._div_id.join(js.split('{div_id}'))
         js=self._array_b64.join(js.split('{b64}'))
